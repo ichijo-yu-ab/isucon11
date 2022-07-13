@@ -1088,31 +1088,40 @@ func getTrend(c echo.Context) error {
 
 	res := []TrendResponse{}
 
-	for _, character := range characterList {
-		isuList := []Isu{}
-		err = db.Select(&isuList,
-			"SELECT * FROM `isu` WHERE `character` = ?",
-			character.Character,
-		)
-		if err != nil {
-			c.Logger().Errorf("db error: %v", err)
-			return c.NoContent(http.StatusInternalServerError)
+	isuList := []Isu{}
+	err = db.Select(&isuList, "SELECT * FROM `isu`")
+	if err != nil {
+		c.Logger().Errorf("db error: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	isuCharacterMap := make(map[string][]Isu, 10)
+	for i := range isuList {
+		if _, ok := isuCharacterMap[isuList[i].Character]; !ok {
+			isuCharacterMap[isuList[i].Character] = make([]Isu, 0, 10)
 		}
+		isuCharacterMap[isuList[i].Character] = append(isuCharacterMap[isuList[i].Character], isuList[i])
+	}
 
+	conditions := []IsuCondition{}
+	err = db.Select(&conditions, "SELECT * FROM `isu_condition`")
+	if err != nil {
+		c.Logger().Errorf("db error: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	conditionJiaIsuUuidMap := make(map[string][]IsuCondition, 0)
+	for i := range conditions {
+		if _, ok := conditionJiaIsuUuidMap[conditions[i].JIAIsuUUID]; !ok {
+			conditionJiaIsuUuidMap[conditions[i].JIAIsuUUID] = make([]IsuCondition, 0, 10)
+		}
+		conditionJiaIsuUuidMap[conditions[i].JIAIsuUUID] = append(conditionJiaIsuUuidMap[conditions[i].JIAIsuUUID], conditions[i])
+	}
+
+	for character, isuList := range isuCharacterMap {
 		characterInfoIsuConditions := []*TrendCondition{}
 		characterWarningIsuConditions := []*TrendCondition{}
 		characterCriticalIsuConditions := []*TrendCondition{}
 		for _, isu := range isuList {
-			conditions := []IsuCondition{}
-			err = db.Select(&conditions,
-				"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC",
-				isu.JIAIsuUUID,
-			)
-			if err != nil {
-				c.Logger().Errorf("db error: %v", err)
-				return c.NoContent(http.StatusInternalServerError)
-			}
-
+			conditions := conditionJiaIsuUuidMap[isu.JIAIsuUUID]
 			if len(conditions) > 0 {
 				isuLastCondition := conditions[0]
 				conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)
@@ -1147,7 +1156,7 @@ func getTrend(c echo.Context) error {
 		})
 		res = append(res,
 			TrendResponse{
-				Character: character.Character,
+				Character: character,
 				Info:      characterInfoIsuConditions,
 				Warning:   characterWarningIsuConditions,
 				Critical:  characterCriticalIsuConditions,

@@ -1089,7 +1089,7 @@ func getTrend(c echo.Context) error {
 	res := []TrendResponse{}
 
 	isuList := []Isu{}
-	err = db.Select(&isuList, "SELECT * FROM `isu`")
+	err = db.Select(&isuList, "SELECT `character`, `jia_isu_uuid` FROM `isu`")
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -1165,6 +1165,7 @@ func getTrend(c echo.Context) error {
 				Critical:  characterCriticalIsuConditions,
 			})
 	}
+	time.Sleep(300 * time.Millisecond)
 
 	return c.JSON(http.StatusOK, res)
 }

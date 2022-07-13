@@ -1122,6 +1122,9 @@ func getTrend(c echo.Context) error {
 		characterCriticalIsuConditions := []*TrendCondition{}
 		for _, isu := range isuList {
 			conditions := conditionJiaIsuUuidMap[isu.JIAIsuUUID]
+			sort.Slice(conditions, func(i, j) bool {
+				return conditions[i].Timestamp.After(conditions[j].Timestamp)
+			})
 			if len(conditions) > 0 {
 				isuLastCondition := conditions[0]
 				conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)

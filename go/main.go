@@ -1089,7 +1089,7 @@ func getTrend(c echo.Context) error {
 	res := []TrendResponse{}
 
 	isuList := []Isu{}
-	err = db.Select(&isuList, "SELECT `character`, `jia_isu_uuid` FROM `isu`")
+	err = db.Select(&isuList, "SELECT `id`, `character`, `jia_isu_uuid` FROM `isu`")
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
 		return c.NoContent(http.StatusInternalServerError)

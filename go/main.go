@@ -571,6 +571,16 @@ func postIsu(c echo.Context) error {
 		}
 	}
 
+	file, err := os.Create(fmt.Sprintf("public/%s", jiaIsuUUID))
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	_, err = file.Write(image)
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.Beginx()
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
@@ -580,7 +590,7 @@ func postIsu(c echo.Context) error {
 
 	_, err = tx.Exec("INSERT INTO `isu`"+
 		"	(`jia_isu_uuid`, `name`, `image`, `jia_user_id`) VALUES (?, ?, ?, ?)",
-		jiaIsuUUID, isuName, image, jiaUserID)
+		jiaIsuUUID, isuName, []byte(""), jiaUserID)
 	if err != nil {
 		mysqlErr, ok := err.(*mysql.MySQLError)
 
